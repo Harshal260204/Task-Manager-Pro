@@ -2,6 +2,7 @@ import express from 'express'
 import helmet from 'helmet'
 import cors from 'cors'
 import dotenv from 'dotenv'
+import authRoutes from './routes/authRoutes.js'
 
 // Load environment variables
 dotenv.config()
@@ -32,8 +33,8 @@ app.get('/health', (req, res) => {
   })
 })
 
-// API routes (to be added later)
-// app.use('/api/v1', routes)
+// API routes
+app.use('/api/auth', authRoutes)
 
 // 404 handler
 app.use((req, res) => {
