@@ -1,0 +1,14 @@
+{
+  "name": "task-manager-mobile",
+  "version": "1.0.0",
+  "description": "Mobile app for Task Manager Pro",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
+

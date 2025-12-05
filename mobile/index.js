@@ -1,0 +1,3 @@
+// Mobile app entry point
+console.log('Mobile app starting...');
+
