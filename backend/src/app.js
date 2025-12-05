@@ -3,6 +3,7 @@ import helmet from 'helmet'
 import cors from 'cors'
 import dotenv from 'dotenv'
 import authRoutes from './routes/authRoutes.js'
+import tasksRoutes from './routes/tasksRoutes.js'
 
 // Load environment variables
 dotenv.config()
@@ -35,6 +36,7 @@ app.get('/health', (req, res) => {
 
 // API routes
 app.use('/api/auth', authRoutes)
+app.use('/api/tasks', tasksRoutes)
 
 // 404 handler
 app.use((req, res) => {
