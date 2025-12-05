@@ -1,11 +1,8 @@
 import express from 'express'
 import rateLimit from 'express-rate-limit'
 import { register, login } from '../controllers/authController.js'
-import {
-  registerValidator,
-  loginValidator,
-  handleValidationErrors,
-} from '../validators/authValidator.js'
+import { registerSchema, loginSchema } from '../validators/authSchemas.js'
+import { validate } from '../middleware/validateMiddleware.js'
 
 const router = express.Router()
 
@@ -29,8 +26,7 @@ const authLimiter = rateLimit({
 router.post(
   '/register',
   authLimiter,
-  registerValidator,
-  handleValidationErrors,
+  validate(registerSchema, 'body'),
   register
 )
 
@@ -39,7 +35,7 @@ router.post(
  * @desc    Login user
  * @access  Public
  */
-router.post('/login', authLimiter, loginValidator, handleValidationErrors, login)
+router.post('/login', authLimiter, validate(loginSchema, 'body'), login)
 
 export default router
 

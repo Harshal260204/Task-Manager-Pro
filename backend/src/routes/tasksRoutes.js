@@ -8,11 +8,11 @@ import {
   deleteExistingTask,
 } from '../controllers/tasksController.js'
 import {
-  createTaskValidator,
-  updateTaskValidator,
-  taskQueryValidator,
-  handleValidationErrors,
-} from '../validators/taskValidator.js'
+  createTaskSchema,
+  updateTaskSchema,
+  taskQuerySchema,
+} from '../validators/taskSchemas.js'
+import { validate } from '../middleware/validateMiddleware.js'
 
 const router = express.Router()
 
@@ -24,12 +24,7 @@ router.use(authenticate)
  * @desc    Get all tasks with filtering, search, and pagination
  * @access  Private
  */
-router.get(
-  '/',
-  taskQueryValidator,
-  handleValidationErrors,
-  getAllTasks
-)
+router.get('/', validate(taskQuerySchema, 'query'), getAllTasks)
 
 /**
  * @route   GET /api/tasks/:id
@@ -43,24 +38,14 @@ router.get('/:id', getSingleTask)
  * @desc    Create a new task
  * @access  Private
  */
-router.post(
-  '/',
-  createTaskValidator,
-  handleValidationErrors,
-  createNewTask
-)
+router.post('/', validate(createTaskSchema, 'body'), createNewTask)
 
 /**
  * @route   PUT /api/tasks/:id
  * @desc    Update a task
  * @access  Private
  */
-router.put(
-  '/:id',
-  updateTaskValidator,
-  handleValidationErrors,
-  updateExistingTask
-)
+router.put('/:id', validate(updateTaskSchema, 'body'), updateExistingTask)
 
 /**
  * @route   DELETE /api/tasks/:id

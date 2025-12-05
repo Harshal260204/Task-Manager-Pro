@@ -5,6 +5,7 @@ import {
   updateTask,
   deleteTask,
 } from '../services/tasksService.js'
+import { AppError } from '../middleware/errorMiddleware.js'
 
 /**
  * Get all tasks with filtering, search, and pagination
@@ -42,10 +43,7 @@ export const getSingleTask = async (req, res, next) => {
     const task = await getTaskById(req.params.id, req.user.id)
 
     if (!task) {
-      return res.status(404).json({
-        success: false,
-        message: 'Task not found',
-      })
+      throw new AppError('Task not found', 404)
     }
 
     res.status(200).json({
@@ -53,13 +51,6 @@ export const getSingleTask = async (req, res, next) => {
       data: task,
     })
   } catch (error) {
-    // Handle invalid ObjectId
-    if (error.name === 'CastError') {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid task ID',
-      })
-    }
     next(error)
   }
 }
@@ -91,10 +82,7 @@ export const updateExistingTask = async (req, res, next) => {
     const task = await updateTask(req.params.id, req.body, req.user.id)
 
     if (!task) {
-      return res.status(404).json({
-        success: false,
-        message: 'Task not found',
-      })
+      throw new AppError('Task not found', 404)
     }
 
     res.status(200).json({
@@ -103,13 +91,6 @@ export const updateExistingTask = async (req, res, next) => {
       data: task,
     })
   } catch (error) {
-    // Handle invalid ObjectId
-    if (error.name === 'CastError') {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid task ID',
-      })
-    }
     next(error)
   }
 }
@@ -123,10 +104,7 @@ export const deleteExistingTask = async (req, res, next) => {
     const task = await deleteTask(req.params.id, req.user.id)
 
     if (!task) {
-      return res.status(404).json({
-        success: false,
-        message: 'Task not found',
-      })
+      throw new AppError('Task not found', 404)
     }
 
     res.status(200).json({
@@ -135,13 +113,6 @@ export const deleteExistingTask = async (req, res, next) => {
       data: task,
     })
   } catch (error) {
-    // Handle invalid ObjectId
-    if (error.name === 'CastError') {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid task ID',
-      })
-    }
     next(error)
   }
 }

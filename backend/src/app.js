@@ -4,6 +4,7 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import authRoutes from './routes/authRoutes.js'
 import tasksRoutes from './routes/tasksRoutes.js'
+import { errorHandler, notFoundHandler } from './middleware/errorMiddleware.js'
 
 // Load environment variables
 dotenv.config()
@@ -39,24 +40,10 @@ app.use('/api/auth', authRoutes)
 app.use('/api/tasks', tasksRoutes)
 
 // 404 handler
-app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    message: 'Route not found',
-  })
-})
+app.use(notFoundHandler)
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  const statusCode = err.statusCode || 500
-  const message = err.message || 'Internal Server Error'
-
-  res.status(statusCode).json({
-    success: false,
-    message,
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
-  })
-})
+// Global error handling middleware (must be last)
+app.use(errorHandler)
 
 export default app
 

@@ -4,6 +4,7 @@ import {
   comparePassword,
   generateToken,
 } from '../services/authService.js'
+import { AppError } from '../middleware/errorMiddleware.js'
 
 /**
  * Register a new user
@@ -15,10 +16,7 @@ export const register = async (req, res, next) => {
     // Check if user already exists
     const existingUser = await User.findOne({ email })
     if (existingUser) {
-      return res.status(409).json({
-        success: false,
-        message: 'User with this email already exists',
-      })
+      throw new AppError('User with this email already exists', 409)
     }
 
     // Hash password
@@ -61,20 +59,14 @@ export const login = async (req, res, next) => {
     const user = await User.findOne({ email }).select('+passwordHash')
 
     if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid email or password',
-      })
+      throw new AppError('Invalid email or password', 401)
     }
 
     // Compare passwords
     const isPasswordValid = await comparePassword(password, user.passwordHash)
 
     if (!isPasswordValid) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid email or password',
-      })
+      throw new AppError('Invalid email or password', 401)
     }
 
     // Generate token
