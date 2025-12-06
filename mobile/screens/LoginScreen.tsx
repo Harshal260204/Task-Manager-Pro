@@ -86,17 +86,17 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
             />
 
             <View style={styles.passwordContainer}>
-              <TextInput
+            <TextInput
                 style={styles.passwordInput}
-                placeholder="Password"
-                placeholderTextColor="#999"
-                value={password}
-                onChangeText={setPassword}
+              placeholder="Password"
+              placeholderTextColor="#999"
+              value={password}
+              onChangeText={setPassword}
                 secureTextEntry={!showPassword}
-                autoCapitalize="none"
-                autoCorrect={false}
-                editable={!loading}
-              />
+              autoCapitalize="none"
+              autoCorrect={false}
+              editable={!loading}
+            />
               <TouchableOpacity
                 style={styles.eyeIcon}
                 onPress={() => setShowPassword(!showPassword)}
