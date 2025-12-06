@@ -15,7 +15,13 @@ axiosInstance.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token')
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+      // Ensure token is properly formatted
+      const cleanToken = token.trim()
+      if (cleanToken && !cleanToken.startsWith('Bearer ')) {
+        config.headers.Authorization = `Bearer ${cleanToken}`
+      } else if (cleanToken.startsWith('Bearer ')) {
+        config.headers.Authorization = cleanToken
+      }
     }
     return config
   },

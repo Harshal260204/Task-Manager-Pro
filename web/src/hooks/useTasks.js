@@ -16,6 +16,14 @@ export const useTasks = () => {
   // Fetch tasks with filters
   const fetchTasks = useCallback(
     async (params = {}) => {
+      // Check if token exists before making request
+      const token = localStorage.getItem('token')
+      if (!token) {
+        setError('Please login to view tasks')
+        setLoading(false)
+        return
+      }
+
       setLoading(true)
       setError(null)
 
@@ -33,17 +41,20 @@ export const useTasks = () => {
         )
 
         setTasks(response.data.data || [])
-        setMeta(response.data.meta || meta)
+        setMeta((prev) => response.data.meta || prev)
       } catch (err) {
         const message =
           err.response?.data?.message || 'Failed to fetch tasks'
         setError(message)
-        toast.error(message)
+        // Don't show toast for 401 errors as they're handled by interceptor
+        if (err.response?.status !== 401) {
+          toast.error(message)
+        }
       } finally {
         setLoading(false)
       }
     },
-    [meta]
+    []
   )
 
   // Create task
