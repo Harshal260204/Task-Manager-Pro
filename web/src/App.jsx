@@ -20,6 +20,46 @@ const theme = createTheme({
       main: '#dc004e',
     },
   },
+  typography: {
+    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif",
+    h1: {
+      fontFamily: "'Poppins', sans-serif",
+    },
+    h2: {
+      fontFamily: "'Poppins', sans-serif",
+    },
+    h3: {
+      fontFamily: "'Poppins', sans-serif",
+    },
+    h4: {
+      fontFamily: "'Poppins', sans-serif",
+    },
+    h5: {
+      fontFamily: "'Poppins', sans-serif",
+    },
+    h6: {
+      fontFamily: "'Poppins', sans-serif",
+    },
+    button: {
+      fontFamily: "'Inter', sans-serif",
+    },
+  },
+  components: {
+    MuiDialogTitle: {
+      styleOverrides: {
+        root: {
+          fontFamily: "'Poppins', sans-serif",
+        },
+      },
+    },
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          fontFamily: "'Inter', sans-serif",
+        },
+      },
+    },
+  },
 })
 
 function App() {
