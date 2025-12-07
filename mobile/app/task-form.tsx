@@ -81,49 +81,119 @@ export default function TaskFormScreen() {
   }
 
   const handleSubmit = async () => {
-    if (!title.trim()) {
-      Alert.alert('Error', 'Title is required')
+    console.log('🔘 Submit button pressed!')
+    console.log('  Form state:', { title, description, status, priority, dueDate })
+    
+    // Validate title
+    const trimmedTitle = title.trim()
+    if (!trimmedTitle) {
+      console.log('  ❌ Validation failed: Title is required')
+      Alert.alert('Validation Error', 'Title is required')
       return
     }
 
+    if (trimmedTitle.length > 200) {
+      console.log('  ❌ Validation failed: Title too long')
+      Alert.alert('Validation Error', 'Title must not exceed 200 characters')
+      return
+    }
+
+    // Validate description
+    const trimmedDescription = description.trim()
+    if (trimmedDescription.length > 1000) {
+      console.log('  ❌ Validation failed: Description too long')
+      Alert.alert('Validation Error', 'Description must not exceed 1000 characters')
+      return
+    }
+
+    console.log('  ✅ Validation passed, submitting...')
     setLoading(true)
 
     try {
+      // Prepare task data according to backend schema
       const taskData: any = {
-        title: title.trim(),
-        description: description.trim() || undefined,
+        title: trimmedTitle,
         status,
         priority,
       }
 
+      // Description: backend accepts empty string or string, not undefined
+      if (trimmedDescription) {
+        taskData.description = trimmedDescription
+      } else {
+        taskData.description = '' // Backend expects empty string, not undefined
+      }
+
+      // Due date: only include if set, must be ISO 8601 format
       if (dueDateObj) {
         taskData.dueDate = dueDateObj.toISOString()
       }
 
-      if (isEdit && taskId) {
-        await axiosInstance.put(`/tasks/${taskId}`, taskData)
-        Alert.alert('Success', 'Task updated successfully', [
-          {
-            text: 'OK',
-            onPress: () => router.back(),
-          },
-        ])
-      } else {
-        await axiosInstance.post('/tasks', taskData)
-        Alert.alert('Success', 'Task created successfully', [
-          {
-            text: 'OK',
-            onPress: () => router.back(),
-          },
-        ])
-      }
-    } catch (error: any) {
-      const message =
-        error.response?.data?.message ||
-        error.message ||
-        `Failed to ${isEdit ? 'update' : 'create'} task`
+      console.log('📤 Submitting task data:', JSON.stringify(taskData, null, 2))
+      console.log('  Mode:', isEdit ? 'edit' : 'create')
+      console.log('  Task ID:', taskId || 'N/A')
 
-      Alert.alert('Error', message)
+      let response
+      if (isEdit && taskId) {
+        console.log('  Updating task:', taskId)
+        response = await axiosInstance.put(`/tasks/${taskId}`, taskData)
+        console.log('  ✅ Update response:', response.data)
+      } else {
+        console.log('  Creating new task')
+        response = await axiosInstance.post('/tasks', taskData)
+        console.log('  ✅ Create response:', response.data)
+      }
+
+      // Show success message
+      Alert.alert(
+        'Success',
+        isEdit ? 'Task updated successfully' : 'Task created successfully',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              console.log('  Navigating back...')
+              router.back()
+            },
+          },
+        ]
+      )
+    } catch (error: any) {
+      console.error('❌ Task submission error:', error)
+      console.error('  Response:', error.response?.data)
+      console.error('  Status:', error.response?.status)
+      console.error('  Message:', error.message)
+
+      // Extract detailed error message from backend
+      let errorMessage = `Failed to ${isEdit ? 'update' : 'create'} task`
+
+      if (error.response?.data) {
+        const backendError = error.response.data
+
+        // Backend returns validation errors in different formats
+        if (backendError.message) {
+          errorMessage = backendError.message
+        } else if (backendError.error) {
+          // Joi validation errors
+          if (typeof backendError.error === 'string') {
+            errorMessage = backendError.error
+          } else if (backendError.error.details && Array.isArray(backendError.error.details)) {
+            // Multiple validation errors
+            const errors = backendError.error.details.map((detail: any) => detail.message).join('\n')
+            errorMessage = `Validation errors:\n${errors}`
+          }
+        } else if (backendError.errors) {
+          // Mongoose validation errors
+          const errors = Object.values(backendError.errors)
+            .map((err: any) => err.message)
+            .join('\n')
+          errorMessage = `Validation errors:\n${errors}`
+        }
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+
+      Alert.alert('Error', errorMessage)
     } finally {
       setLoading(false)
     }

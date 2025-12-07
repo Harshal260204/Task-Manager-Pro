@@ -21,12 +21,14 @@ function RootLayoutNav() {
     if (isLoading) return;
 
     const inAuthGroup = segments[0] === '(tabs)';
+    const isAuthRoute = segments[0] === 'login' || segments[0] === 'register';
+    const isTaskForm = segments[0] === 'task-form';
 
     if (!isAuthenticated && inAuthGroup) {
-      // Redirect to login if not authenticated
+      // Redirect to login if not authenticated and trying to access tabs
       router.replace('/login');
-    } else if (isAuthenticated && !inAuthGroup) {
-      // Redirect to tabs if authenticated
+    } else if (isAuthenticated && !inAuthGroup && !isAuthRoute && !isTaskForm) {
+      // Redirect to tabs if authenticated and not on auth/task-form routes
       router.replace('/(tabs)');
     }
   }, [isAuthenticated, isLoading, segments]);

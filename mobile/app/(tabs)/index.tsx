@@ -126,44 +126,36 @@ export default function TaskListScreen() {
   const handleTaskPress = (task: Task) => {
     console.log('📝 Opening task for edit:', task._id)
     try {
-      const href = {
-        pathname: '/task-form',
-        params: { mode: 'edit', taskId: task._id },
-      }
-      console.log('  Navigation href:', JSON.stringify(href, null, 2))
-      router.push(href as any)
-      console.log('  ✅ router.push() executed')
+      // Use relative path to navigate from tabs to root level
+      router.push(`../task-form?mode=edit&taskId=${encodeURIComponent(task._id)}` as any)
+      console.log('  ✅ Navigation triggered')
     } catch (err: any) {
       console.error('❌ Navigation error:', err)
-      Alert.alert('Error', 'Failed to open task form')
+      // Fallback: try absolute path
+      try {
+        router.push(`/task-form?mode=edit&taskId=${encodeURIComponent(task._id)}` as any)
+      } catch (err2: any) {
+        console.error('❌ Fallback also failed:', err2)
+        Alert.alert('Error', 'Failed to open task form')
+      }
     }
   }
 
   const handleCreateTask = () => {
     console.log('➕ Creating new task - Button pressed')
-    
-    // Try using href format which works better with Expo Router
-    const href = {
-      pathname: '/task-form',
-      params: { mode: 'create' },
-    }
-    
-    console.log('  Navigation href:', JSON.stringify(href, null, 2))
-    
     try {
-      router.push(href as any)
-      console.log('  ✅ router.push() executed')
+      // Use relative path to navigate from tabs to root level
+      router.push('../task-form?mode=create' as any)
+      console.log('  ✅ Navigation triggered')
     } catch (err: any) {
       console.error('❌ Navigation error:', err)
-      console.error('  Error message:', err.message)
-      console.error('  Error stack:', err.stack)
-      
-      // Show user-friendly error
-      Alert.alert(
-        'Navigation Error',
-        'Unable to open task form. Please try again or restart the app.',
-        [{ text: 'OK' }]
-      )
+      // Fallback: try absolute path
+      try {
+        router.push('/task-form?mode=create' as any)
+      } catch (err2: any) {
+        console.error('❌ Fallback also failed:', err2)
+        Alert.alert('Error', 'Failed to open task form')
+      }
     }
   }
 
