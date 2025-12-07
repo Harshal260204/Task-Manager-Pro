@@ -179,7 +179,7 @@ const TaskForm = ({ open, onClose, task, onSubmit, isSubmitting }) => {
 
             <TextField
               fullWidth
-              label="Description *"
+              label="Description"
               name="description"
               value={formData.description}
               onChange={handleChange}
@@ -199,7 +199,7 @@ const TaskForm = ({ open, onClose, task, onSubmit, isSubmitting }) => {
               <TextField
                 fullWidth
                 select
-                label="Status *"
+                label="Status"
                 name="status"
                 value={formData.status}
                 onChange={handleChange}
@@ -220,7 +220,7 @@ const TaskForm = ({ open, onClose, task, onSubmit, isSubmitting }) => {
               <TextField
                 fullWidth
                 select
-                label="Priority *"
+                label="Priority"
                 name="priority"
                 value={formData.priority}
                 onChange={handleChange}
@@ -241,7 +241,7 @@ const TaskForm = ({ open, onClose, task, onSubmit, isSubmitting }) => {
 
             <TextField
               fullWidth
-              label="Due Date *"
+              label="Due Date"
               name="dueDate"
               type="date"
               value={formData.dueDate}

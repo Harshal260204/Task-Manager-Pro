@@ -229,14 +229,14 @@ Retrieve all tasks for the authenticated user with optional filtering, search, a
 
 **Query Parameters:**
 
-| Parameter | Type | Description | Example |
-|-----------|------|-------------|---------|
-| `q` | string | Search query (searches title and description) | `?q=meeting` |
-| `status` | string | Filter by status (`todo`, `in-progress`, `done`) | `?status=todo` |
-| `priority` | string | Filter by priority (`low`, `med`, `high`) | `?priority=high` |
-| `page` | number | Page number (min: 1) | `?page=1` |
-| `limit` | number | Items per page (min: 1, max: 100) | `?limit=10` |
-| `sortBy` | string | Sort field (`createdAt`, `dueDate`, `title`, `priority`, `status`) | `?sortBy=dueDate` |
+| Parameter | Type | Description | Default | Example |
+|-----------|------|-------------|---------|---------|
+| `q` | string | Search query (searches title and description using MongoDB text search) | - | `?q=meeting` |
+| `status` | string | Filter by status (`todo`, `in-progress`, `done`) | - | `?status=todo` |
+| `priority` | string | Filter by priority (`low`, `med`, `high`) | - | `?priority=high` |
+| `page` | number | Page number (min: 1) | `1` | `?page=1` |
+| `limit` | number | Items per page (min: 1, max: 100) | `10` | `?limit=10` |
+| `sortBy` | string | Sort field (`createdAt`, `dueDate`, `title`, `priority`, `status`). See sort order details below | `createdAt` | `?sortBy=dueDate` |
 
 **Example Request:**
 ```
@@ -264,9 +264,7 @@ GET /api/tasks?status=todo&priority=high&page=1&limit=10&sortBy=dueDate
     "page": 1,
     "limit": 10,
     "total": 25,
-    "totalPages": 3,
-    "hasNextPage": true,
-    "hasPrevPage": false
+    "pages": 3
   }
 }
 ```
@@ -371,11 +369,13 @@ Create a new task.
 ```
 
 **Validation Rules:**
-- `title`: Required, string, 1-200 characters
-- `description`: Optional, string, max 1000 characters
+- `title`: Required, string, 1-200 characters (trimmed)
+- `description`: Optional, string, max 1000 characters (trimmed, default: empty string)
 - `status`: Optional, one of: `todo`, `in-progress`, `done` (default: `todo`)
 - `priority`: Optional, one of: `low`, `med`, `high` (default: `med`)
 - `dueDate`: Optional, valid ISO 8601 date string
+
+**Note:** The `owner` field is automatically set to the authenticated user's ID and cannot be modified.
 
 **Success Response (201):**
 ```json
@@ -445,11 +445,13 @@ Update an existing task.
 All fields are optional. Only provided fields will be updated.
 
 **Validation Rules:**
-- `title`: Optional, string, 1-200 characters (if provided)
-- `description`: Optional, string, max 1000 characters
+- `title`: Optional, string, 1-200 characters (if provided, trimmed)
+- `description`: Optional, string, max 1000 characters (trimmed, can be empty string)
 - `status`: Optional, one of: `todo`, `in-progress`, `done`
 - `priority`: Optional, one of: `low`, `med`, `high`
-- `dueDate`: Optional, valid ISO 8601 date string or `null`
+- `dueDate`: Optional, valid ISO 8601 date string or `null` (to remove due date)
+
+**Note:** Only provided fields will be updated. Fields not included in the request body will remain unchanged. The `owner` field cannot be modified.
 
 **Success Response (200):**
 ```json
@@ -580,15 +582,22 @@ DELETE /api/tasks/507f1f77bcf86cd799439011
 {
   _id: ObjectId,
   title: string (1-200 chars, required),
-  description: string (max 1000 chars, optional),
+  description: string (max 1000 chars, optional, default: ''),
   status: 'todo' | 'in-progress' | 'done' (default: 'todo'),
   priority: 'low' | 'med' | 'high' (default: 'med'),
   dueDate: Date (optional),
   owner: ObjectId (reference to User, required),
-  createdAt: Date,
-  updatedAt: Date
+  createdAt: Date (auto-generated),
+  updatedAt: Date (auto-generated)
 }
 ```
+
+**Indexes:**
+- Text index on `title` and `description` for search functionality
+- Index on `owner` for faster queries
+- Index on `status` for filtering
+- Index on `priority` for sorting/filtering
+- Compound index on `owner` and `status` for common query patterns
 
 ---
 
@@ -603,6 +612,16 @@ DELETE /api/tasks/507f1f77bcf86cd799439011
 - `low` - Low priority task
 - `med` - Medium priority task (default)
 - `high` - High priority task
+
+## Sort Order Details
+
+When using the `sortBy` query parameter, tasks are sorted as follows:
+
+- **`createdAt`** (default): Newest tasks first (descending order)
+- **`dueDate`**: Earliest due dates first (ascending order)
+- **`title`**: Alphabetical order (A-Z, ascending)
+- **`priority`**: High priority first (high → med → low, descending)
+- **`status`**: Alphabetical order (done → in-progress → todo, ascending)
 
 ---
 
@@ -694,9 +713,15 @@ Common error scenarios:
 - All timestamps are in ISO 8601 format (UTC)
 - Task IDs are MongoDB ObjectIds
 - Users can only access their own tasks
-- JWT tokens expire after 7 days (configurable via `JWT_EXPIRE` environment variable)
+- JWT tokens expire after 7 days (configurable via `JWT_EXPIRES_IN` environment variable)
 - Search functionality uses MongoDB text indexes on task title and description
 - Pagination defaults: page=1, limit=10 (if not specified)
+- Sort order:
+  - `createdAt`: Newest first (descending)
+  - `dueDate`: Earliest first (ascending)
+  - `title`: Alphabetical (ascending)
+  - `priority`: High to low (high, med, low) - descending
+  - `status`: Alphabetical (ascending)
 
 ---
 

@@ -70,13 +70,15 @@ Task-Manager-Pro/
 - **Vite** - Build tool and dev server
 - **React Router** - Routing
 - **Axios** - HTTP client
-- **Material-UI** - UI component library
+- **Material-UI (MUI)** - UI component library
 - **React Toastify** - Toast notifications
 
 ### Mobile
 - **React Native** - Mobile framework
 - **Expo** - Development platform
 - **Expo Router** - File-based routing
+- **AsyncStorage** - Local storage for authentication tokens
+- **Axios** - HTTP client
 
 ## 📋 Prerequisites
 
@@ -112,7 +114,7 @@ cd Task-Manager-Pro
    PORT=5000
    MONGODB_URI=mongodb://localhost:27017/task-manager-pro
    JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
-   JWT_EXPIRE=7d
+   JWT_EXPIRES_IN=7d
    CORS_ORIGIN=http://localhost:5173
    ```
 
@@ -164,7 +166,15 @@ cd Task-Manager-Pro
    npm install
    ```
 
-3. Start the Expo development server:
+3. Configure the API URL:
+   - Open `mobile/api/axios.ts`
+   - Update the `API_URL` constant with your backend server URL
+   - **For physical devices**: Use your computer's local IP address (e.g., `http://192.168.1.144:5000/api`)
+     - Find your IP: Run `ipconfig` (Windows) or `ifconfig` (Mac/Linux)
+   - **For Android emulator**: Use `http://10.0.2.2:5000/api`
+   - **For iOS simulator**: Use `http://localhost:5000/api`
+
+4. Start the Expo development server:
    ```bash
    npm run dev
    ```
@@ -181,7 +191,7 @@ cd Task-Manager-Pro
 | `PORT` | Server port | `5000` |
 | `MONGODB_URI` | MongoDB connection string | Required |
 | `JWT_SECRET` | Secret key for JWT tokens | Required |
-| `JWT_EXPIRE` | JWT token expiration time | `7d` |
+| `JWT_EXPIRES_IN` | JWT token expiration time | `7d` |
 | `CORS_ORIGIN` | Allowed CORS origin | `http://localhost:5173` |
 
 ### Web (.env)
@@ -189,6 +199,10 @@ cd Task-Manager-Pro
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `VITE_API_URL` | Backend API URL | `http://localhost:5000/api` |
+
+### Mobile
+
+The mobile app API URL is configured directly in `mobile/api/axios.ts`. Update the `API_URL` constant based on your testing environment (see Mobile App Setup section above).
 
 ## 📚 API Documentation
 
@@ -212,6 +226,16 @@ Expected response:
   "timestamp": "2024-01-01T00:00:00.000Z"
 }
 ```
+
+### Testing API Endpoints
+
+You can test the API endpoints using tools like:
+- **cURL** - Command-line tool
+- **Postman** - API testing tool
+- **Thunder Client** - VS Code extension
+- **Insomnia** - API client
+
+See [APIDOCS.md](./APIDOCS.md) for detailed endpoint documentation and example requests.
 
 ## 🏗️ Development
 
@@ -246,28 +270,30 @@ npx prettier --write .
 
 ## 🔒 Security Features
 
-- **Password Hashing**: Passwords are hashed using bcrypt
-- **JWT Authentication**: Secure token-based authentication
-- **Rate Limiting**: Protection against brute force attacks on auth endpoints
-- **Helmet**: Security headers for Express
-- **Input Validation**: Comprehensive validation using Joi schemas
+- **Password Hashing**: Passwords are hashed using bcrypt with salt rounds
+- **JWT Authentication**: Secure token-based authentication with configurable expiration
+- **Rate Limiting**: Protection against brute force attacks on auth endpoints (5 requests per 15 minutes)
+- **Helmet**: Security headers for Express.js
+- **Input Validation**: Comprehensive validation using Joi schemas for all endpoints
 - **CORS**: Configurable cross-origin resource sharing
+- **User Isolation**: Users can only access their own tasks (enforced at the database query level)
 
 ## 📝 API Endpoints Overview
 
 ### Authentication
-- `POST /api/auth/register` - Register a new user
-- `POST /api/auth/login` - Login user
+- `POST /api/auth/register` - Register a new user (rate limited: 5 requests per 15 minutes)
+- `POST /api/auth/login` - Login user (rate limited: 5 requests per 15 minutes)
 
 ### Tasks
-- `GET /api/tasks` - Get all tasks (with filtering, search, pagination)
-- `GET /api/tasks/:id` - Get a single task
+- `GET /api/tasks` - Get all tasks (with filtering, search, pagination, sorting)
+  - Query parameters: `q` (search), `status`, `priority`, `page`, `limit`, `sortBy`
+- `GET /api/tasks/:id` - Get a single task by ID
 - `POST /api/tasks` - Create a new task
 - `PUT /api/tasks/:id` - Update a task
 - `DELETE /api/tasks/:id` - Delete a task
 
 ### Health Check
-- `GET /health` - Server health check
+- `GET /health` - Server health check (no authentication required)
 
 ## 🐛 Troubleshooting
 
@@ -295,6 +321,17 @@ npx prettier --write .
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
+## 📦 Database
+
+The application uses **MongoDB** as the database. You can use either:
+- **Local MongoDB**: Install MongoDB locally and use `mongodb://localhost:27017/task-manager-pro`
+- **MongoDB Atlas**: Use a cloud MongoDB instance and provide the connection string in `MONGODB_URI`
+
+The application automatically creates the necessary indexes for optimal query performance:
+- Text indexes on task title and description for search
+- Indexes on owner, status, and priority for filtering
+- Compound indexes for common query patterns
+
 ## 📄 License
 
 ISC
@@ -308,6 +345,7 @@ Task Manager Pro Development Team
 - Express.js community
 - React community
 - MongoDB documentation
+- Expo team for mobile development tools
 - All contributors and users
 
 ---
