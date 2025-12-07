@@ -13,7 +13,7 @@ import {
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
-import axiosInstance, { API_URL } from '../api/axios'
+import axiosInstance from '../api/axios'
 import { useAuth } from '../contexts/AuthContext'
 
 export default function RegisterScreen() {
@@ -35,70 +35,26 @@ export default function RegisterScreen() {
       return
     }
 
-    console.log('\n📝 REGISTER ATTEMPT:')
-    console.log('  Name:', name.trim())
-    console.log('  Email:', email.trim())
-    console.log('  Password Length:', password.length)
-
     setLoading(true)
 
     try {
-      console.log('  Sending request to /auth/register...')
-      const startTime = Date.now()
-      
       const response = await axiosInstance.post('/auth/register', {
         name: name.trim(),
         email: email.trim(),
         password,
       })
 
-      const endTime = Date.now()
-      console.log(`  ✅ Registration successful in ${endTime - startTime}ms`)
-      console.log('  Response:', JSON.stringify(response.data, null, 2))
-
       const { token, user } = response.data
-      console.log('  Token received:', token ? 'Yes' : 'No')
-      console.log('  User:', JSON.stringify(user, null, 2))
-      
       await login(token, user)
-      console.log('  ✅ Navigation to home screen')
     } catch (error: any) {
-      console.error('  ❌ Registration failed:', error)
-      
-      let message = 'Registration failed. Please try again.'
-      let details = ''
+      const message =
+        error.response?.data?.message ||
+        error.message ||
+        'Registration failed. Please try again.'
 
-      if (error.response) {
-        // Server responded with error
-        message = error.response.data?.message || `Server error (${error.response.status})`
-        details = `Status: ${error.response.status}\nResponse: ${JSON.stringify(error.response.data, null, 2)}`
-        console.error('  Server Response:', error.response.data)
-      } else if (error.request) {
-        // Request made but no response
-        message = error.message || 'Network error. Please check your connection.'
-        details = `Error Code: ${error.code || 'Unknown'}\nURL: ${error.config?.baseURL}${error.config?.url}\n\nMake sure:\n1. Backend server is running\n2. IP address is correct\n3. Phone and computer are on same network`
-        console.error('  Network Error Details:', {
-          code: error.code,
-          message: error.message,
-          url: error.config ? `${error.config.baseURL}${error.config.url}` : 'N/A'
-        })
-      } else {
-        // Request setup error
-        message = error.message || 'Request setup error'
-        details = error.toString()
-        console.error('  Request Error:', error)
-      }
-
-      console.error('  Full Error Object:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2))
-
-      Alert.alert(
-        'Registration Error',
-        `${message}\n\n${details ? `Details:\n${details}` : ''}`,
-        [{ text: 'OK' }]
-      )
+      Alert.alert('Registration Error', message)
     } finally {
       setLoading(false)
-      console.log('  Registration attempt completed\n')
     }
   }
 
@@ -114,10 +70,6 @@ export default function RegisterScreen() {
         <View style={styles.content}>
           <Text style={styles.title}>Create Account</Text>
           <Text style={styles.subtitle}>Sign up for Task Manager Pro</Text>
-          
-          <View style={styles.debugInfo}>
-            <Text style={styles.debugText}>API: {API_URL}</Text>
-          </View>
 
           <View style={styles.form}>
             <TextInput
@@ -271,19 +223,6 @@ const styles = StyleSheet.create({
   linkText: {
     color: '#1976d2',
     fontSize: 14,
-  },
-  debugInfo: {
-    backgroundColor: '#e3f2fd',
-    padding: 8,
-    borderRadius: 4,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#90caf9',
-  },
-  debugText: {
-    fontSize: 10,
-    color: '#1976d2',
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
 })
 

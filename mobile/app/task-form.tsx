@@ -31,12 +31,6 @@ export default function TaskFormScreen() {
   const { taskId, mode } = params
   const isEdit = mode === 'edit' && taskId
 
-  console.log('📋 TaskFormScreen rendered')
-  console.log('  Params received:', params)
-  console.log('  taskId:', taskId)
-  console.log('  mode:', mode)
-  console.log('  isEdit:', isEdit)
-
   const [task, setTask] = useState<Task | null>(null)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -46,10 +40,18 @@ export default function TaskFormScreen() {
   const [dueDateObj, setDueDateObj] = useState<Date | null>(null)
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [fetching, setFetching] = useState(isEdit)
+  const [fetching, setFetching] = useState(false)
+  const [errors, setErrors] = useState<{
+    title?: string
+    description?: string
+    status?: string
+    priority?: string
+    dueDate?: string
+  }>({})
 
   useEffect(() => {
     if (isEdit && taskId) {
+      setFetching(true)
       fetchTask()
     }
   }, [isEdit, taskId])
@@ -62,8 +64,8 @@ export default function TaskFormScreen() {
       setTask(taskData)
       setTitle(taskData.title)
       setDescription(taskData.description || '')
-      setStatus(taskData.status)
-      setPriority(taskData.priority)
+      setStatus(taskData.status || 'todo')
+      setPriority(taskData.priority || 'med')
       if (taskData.dueDate) {
         const date = new Date(taskData.dueDate)
         setDueDateObj(date)
@@ -72,6 +74,7 @@ export default function TaskFormScreen() {
         setDueDate('')
         setDueDateObj(null)
       }
+      setErrors({})
     } catch (error: any) {
       Alert.alert('Error', 'Failed to load task')
       router.back()
@@ -80,89 +83,106 @@ export default function TaskFormScreen() {
     }
   }
 
-  const handleSubmit = async () => {
-    console.log('🔘 Submit button pressed!')
-    console.log('  Form state:', { title, description, status, priority, dueDate })
-    
+  const validateForm = () => {
+    const newErrors: {
+      title?: string
+      description?: string
+      status?: string
+      priority?: string
+      dueDate?: string
+    } = {}
+
     // Validate title
     const trimmedTitle = title.trim()
     if (!trimmedTitle) {
-      console.log('  ❌ Validation failed: Title is required')
-      Alert.alert('Validation Error', 'Title is required')
-      return
-    }
-
-    if (trimmedTitle.length > 200) {
-      console.log('  ❌ Validation failed: Title too long')
-      Alert.alert('Validation Error', 'Title must not exceed 200 characters')
-      return
+      newErrors.title = 'Title is required'
+    } else if (trimmedTitle.length > 200) {
+      newErrors.title = 'Title must not exceed 200 characters'
     }
 
     // Validate description
     const trimmedDescription = description.trim()
-    if (trimmedDescription.length > 1000) {
-      console.log('  ❌ Validation failed: Description too long')
-      Alert.alert('Validation Error', 'Description must not exceed 1000 characters')
+    if (!trimmedDescription) {
+      newErrors.description = 'Description is required'
+    } else if (trimmedDescription.length > 1000) {
+      newErrors.description = 'Description must not exceed 1000 characters'
+    }
+
+    // Validate status
+    if (!status || !['todo', 'in-progress', 'done'].includes(status)) {
+      newErrors.status = 'Status is required and must be valid'
+    }
+
+    // Validate priority
+    if (!priority || !['low', 'med', 'high'].includes(priority)) {
+      newErrors.priority = 'Priority is required and must be valid'
+    }
+
+    // Validate due date - both dueDateObj and dueDate string must be present
+    if (!dueDateObj || !dueDate || dueDate.trim() === '') {
+      newErrors.dueDate = 'Due date is required'
+    } else {
+      // Validate that due date is not in the past
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const selectedDate = new Date(dueDateObj)
+      selectedDate.setHours(0, 0, 0, 0)
+      if (selectedDate < today) {
+        newErrors.dueDate = 'Due date cannot be in the past'
+      }
+    }
+
+    setErrors(newErrors)
+    return { isValid: Object.keys(newErrors).length === 0, errors: newErrors }
+  }
+
+  const handleSubmit = async () => {
+    // Validate all fields
+    const validation = validateForm()
+    if (!validation.isValid) {
+      // Errors are already displayed inline with red borders and text
       return
     }
 
-    console.log('  ✅ Validation passed, submitting...')
+    const trimmedTitle = title.trim()
+    const trimmedDescription = description.trim()
+
+    // Double-check all required fields (defensive programming)
+    if (!trimmedTitle || !trimmedDescription || !status || !priority || !dueDateObj) {
+      // Re-validate to show inline errors
+      validateForm()
+      return
+    }
+
     setLoading(true)
 
     try {
       // Prepare task data according to backend schema
       const taskData: any = {
         title: trimmedTitle,
+        description: trimmedDescription,
         status,
         priority,
+        dueDate: dueDateObj.toISOString(), // Required field, always present after validation
       }
 
-      // Description: backend accepts empty string or string, not undefined
-      if (trimmedDescription) {
-        taskData.description = trimmedDescription
-      } else {
-        taskData.description = '' // Backend expects empty string, not undefined
-      }
-
-      // Due date: only include if set, must be ISO 8601 format
-      if (dueDateObj) {
-        taskData.dueDate = dueDateObj.toISOString()
-      }
-
-      console.log('📤 Submitting task data:', JSON.stringify(taskData, null, 2))
-      console.log('  Mode:', isEdit ? 'edit' : 'create')
-      console.log('  Task ID:', taskId || 'N/A')
-
-      let response
       if (isEdit && taskId) {
-        console.log('  Updating task:', taskId)
-        response = await axiosInstance.put(`/tasks/${taskId}`, taskData)
-        console.log('  ✅ Update response:', response.data)
+        await axiosInstance.put(`/tasks/${taskId}`, taskData)
       } else {
-        console.log('  Creating new task')
-        response = await axiosInstance.post('/tasks', taskData)
-        console.log('  ✅ Create response:', response.data)
+        await axiosInstance.post('/tasks', taskData)
       }
 
-      // Show success message
       Alert.alert(
         'Success',
         isEdit ? 'Task updated successfully' : 'Task created successfully',
         [
           {
             text: 'OK',
-            onPress: () => {
-              console.log('  Navigating back...')
-              router.back()
-            },
+            onPress: () => router.back(),
           },
         ]
       )
     } catch (error: any) {
-      console.error('❌ Task submission error:', error)
-      console.error('  Response:', error.response?.data)
-      console.error('  Status:', error.response?.status)
-      console.error('  Message:', error.message)
 
       // Extract detailed error message from backend
       let errorMessage = `Failed to ${isEdit ? 'update' : 'create'} task`
@@ -220,27 +240,39 @@ export default function TaskFormScreen() {
         <View style={styles.form}>
           <Text style={styles.label}>Title *</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, errors.title && styles.inputError]}
             placeholder="Enter task title"
             placeholderTextColor="#999"
             value={title}
-            onChangeText={setTitle}
+            onChangeText={(text) => {
+              setTitle(text)
+              if (errors.title) {
+                setErrors((prev) => ({ ...prev, title: undefined }))
+              }
+            }}
             editable={!loading}
           />
+          {errors.title && <Text style={styles.errorText}>{errors.title}</Text>}
 
-          <Text style={styles.label}>Description</Text>
+          <Text style={styles.label}>Description *</Text>
           <TextInput
-            style={[styles.input, styles.textArea]}
+            style={[styles.input, styles.textArea, errors.description && styles.inputError]}
             placeholder="Enter task description"
             placeholderTextColor="#999"
             value={description}
-            onChangeText={setDescription}
+            onChangeText={(text) => {
+              setDescription(text)
+              if (errors.description) {
+                setErrors((prev) => ({ ...prev, description: undefined }))
+              }
+            }}
             multiline
             numberOfLines={4}
             editable={!loading}
           />
+          {errors.description && <Text style={styles.errorText}>{errors.description}</Text>}
 
-          <Text style={styles.label}>Status</Text>
+          <Text style={styles.label}>Status *</Text>
           <View style={styles.optionsRow}>
             {(['todo', 'in-progress', 'done'] as const).map((s) => (
               <TouchableOpacity
@@ -248,8 +280,14 @@ export default function TaskFormScreen() {
                 style={[
                   styles.optionButton,
                   status === s && styles.optionButtonActive,
+                  errors.status && styles.optionButtonError,
                 ]}
-                onPress={() => setStatus(s)}
+                onPress={() => {
+                  setStatus(s)
+                  if (errors.status) {
+                    setErrors((prev) => ({ ...prev, status: undefined }))
+                  }
+                }}
                 disabled={loading}
               >
                 <Text
@@ -263,8 +301,9 @@ export default function TaskFormScreen() {
               </TouchableOpacity>
             ))}
           </View>
+          {errors.status && <Text style={styles.errorText}>{errors.status}</Text>}
 
-          <Text style={styles.label}>Priority</Text>
+          <Text style={styles.label}>Priority *</Text>
           <View style={styles.optionsRow}>
             {(['low', 'med', 'high'] as const).map((p) => (
               <TouchableOpacity
@@ -272,8 +311,14 @@ export default function TaskFormScreen() {
                 style={[
                   styles.optionButton,
                   priority === p && styles.optionButtonActive,
+                  errors.priority && styles.optionButtonError,
                 ]}
-                onPress={() => setPriority(p)}
+                onPress={() => {
+                  setPriority(p)
+                  if (errors.priority) {
+                    setErrors((prev) => ({ ...prev, priority: undefined }))
+                  }
+                }}
                 disabled={loading}
               >
                 <Text
@@ -287,24 +332,27 @@ export default function TaskFormScreen() {
               </TouchableOpacity>
             ))}
           </View>
+          {errors.priority && <Text style={styles.errorText}>{errors.priority}</Text>}
 
-          <Text style={styles.label}>Due Date</Text>
+          <Text style={styles.label}>Due Date *</Text>
           <TouchableOpacity
-            style={styles.dateInputContainer}
+            style={[styles.dateInputContainer, errors.dueDate && styles.dateInputError]}
             onPress={() => !loading && setShowDatePicker(true)}
             disabled={loading}
           >
             <View style={styles.dateInput}>
               <Ionicons name="calendar-outline" size={20} color="#666" />
               <Text style={[styles.dateInputText, !dueDate && styles.dateInputPlaceholder]}>
-                {dueDate || 'Select due date (optional)'}
+                {dueDate || 'Select due date'}
               </Text>
             </View>
             {dueDate && (
               <TouchableOpacity
                 onPress={() => {
+                  // Clear date and trigger validation error since it's required
                   setDueDate('')
                   setDueDateObj(null)
+                  setErrors((prev) => ({ ...prev, dueDate: 'Due date is required' }))
                 }}
                 style={styles.clearDateButton}
               >
@@ -312,6 +360,7 @@ export default function TaskFormScreen() {
               </TouchableOpacity>
             )}
           </TouchableOpacity>
+          {errors.dueDate && <Text style={styles.errorText}>{errors.dueDate}</Text>}
 
           {showDatePicker && (
             <DateTimePicker
@@ -325,6 +374,9 @@ export default function TaskFormScreen() {
                 if (event.type === 'set' && selectedDate) {
                   setDueDateObj(selectedDate)
                   setDueDate(selectedDate.toISOString().split('T')[0])
+                  if (errors.dueDate) {
+                    setErrors((prev) => ({ ...prev, dueDate: undefined }))
+                  }
                   if (Platform.OS === 'ios') {
                     setShowDatePicker(false)
                   }
@@ -494,6 +546,24 @@ const styles = StyleSheet.create({
     color: '#1976d2',
     fontSize: 16,
     fontWeight: '600',
+  },
+  inputError: {
+    borderColor: '#d32f2f',
+    borderWidth: 2,
+  },
+  errorText: {
+    color: '#d32f2f',
+    fontSize: 12,
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  optionButtonError: {
+    borderColor: '#d32f2f',
+    borderWidth: 2,
+  },
+  dateInputError: {
+    borderColor: '#d32f2f',
+    borderWidth: 2,
   },
 })
 

@@ -69,12 +69,9 @@ export default function TaskListScreen() {
         params.priority = priorityFilter
       }
 
-      console.log('📋 Fetching tasks with params:', params)
-
       const response = await axiosInstance.get('/tasks', { params })
 
       setTasks(response.data.data || [])
-      console.log('✅ Tasks fetched:', response.data.data?.length || 0)
     } catch (err: any) {
       const message =
         err.response?.data?.message ||
@@ -124,36 +121,24 @@ export default function TaskListScreen() {
   }, [])
 
   const handleTaskPress = (task: Task) => {
-    console.log('📝 Opening task for edit:', task._id)
     try {
-      // Use relative path to navigate from tabs to root level
       router.push(`../task-form?mode=edit&taskId=${encodeURIComponent(task._id)}` as any)
-      console.log('  ✅ Navigation triggered')
     } catch (err: any) {
-      console.error('❌ Navigation error:', err)
-      // Fallback: try absolute path
       try {
         router.push(`/task-form?mode=edit&taskId=${encodeURIComponent(task._id)}` as any)
       } catch (err2: any) {
-        console.error('❌ Fallback also failed:', err2)
         Alert.alert('Error', 'Failed to open task form')
       }
     }
   }
 
   const handleCreateTask = () => {
-    console.log('➕ Creating new task - Button pressed')
     try {
-      // Use relative path to navigate from tabs to root level
       router.push('../task-form?mode=create' as any)
-      console.log('  ✅ Navigation triggered')
     } catch (err: any) {
-      console.error('❌ Navigation error:', err)
-      // Fallback: try absolute path
       try {
         router.push('/task-form?mode=create' as any)
       } catch (err2: any) {
-        console.error('❌ Fallback also failed:', err2)
         Alert.alert('Error', 'Failed to open task form')
       }
     }
@@ -168,7 +153,6 @@ export default function TaskListScreen() {
     if (!taskToDelete) return
 
     try {
-      console.log('🗑️ Deleting task:', taskToDelete._id)
       await axiosInstance.delete(`/tasks/${taskToDelete._id}`)
       Alert.alert('Success', 'Task deleted successfully')
       setShowDeleteDialog(false)

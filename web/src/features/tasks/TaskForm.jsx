@@ -10,7 +10,6 @@ import {
   Typography,
 } from '@mui/material'
 import Button from '../../components/ui/Button'
-import { toast } from 'react-toastify'
 
 const TaskForm = ({ open, onClose, task, onSubmit, isSubmitting }) => {
   const isEdit = !!task
@@ -65,32 +64,75 @@ const TaskForm = ({ open, onClose, task, onSubmit, isSubmitting }) => {
   const validate = () => {
     const newErrors = {}
 
-    if (!formData.title.trim()) {
+    // Validate title
+    const trimmedTitle = formData.title.trim()
+    if (!trimmedTitle) {
       newErrors.title = 'Title is required'
-    }
-
-    if (formData.title.length > 200) {
+    } else if (trimmedTitle.length > 200) {
       newErrors.title = 'Title must not exceed 200 characters'
     }
 
-    if (formData.description.length > 1000) {
+    // Validate description
+    const trimmedDescription = formData.description.trim()
+    if (!trimmedDescription) {
+      newErrors.description = 'Description is required'
+    } else if (trimmedDescription.length > 1000) {
       newErrors.description = 'Description must not exceed 1000 characters'
     }
 
+    // Validate status
+    if (!formData.status || !['todo', 'in-progress', 'done'].includes(formData.status)) {
+      newErrors.status = 'Status is required and must be valid'
+    }
+
+    // Validate priority
+    if (!formData.priority || !['low', 'med', 'high'].includes(formData.priority)) {
+      newErrors.priority = 'Priority is required and must be valid'
+    }
+
+    // Validate due date
+    if (!formData.dueDate || !formData.dueDate.trim()) {
+      newErrors.dueDate = 'Due date is required'
+    } else {
+      // Validate that due date is not in the past
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const selectedDate = new Date(formData.dueDate)
+      selectedDate.setHours(0, 0, 0, 0)
+      if (selectedDate < today) {
+        newErrors.dueDate = 'Due date cannot be in the past'
+      }
+    }
+
     setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+    return { isValid: Object.keys(newErrors).length === 0, errors: newErrors }
   }
 
   const handleSubmit = (e) => {
     e.preventDefault()
 
-    if (!validate()) {
+    const validation = validate()
+    if (!validation.isValid) {
+      // Errors are already displayed inline with Material-UI error states and helperText
+      return
+    }
+
+    // Double-check all required fields (defensive programming)
+    const trimmedTitle = formData.title.trim()
+    const trimmedDescription = formData.description.trim()
+    
+    if (!trimmedTitle || !trimmedDescription || !formData.status || !formData.priority || !formData.dueDate) {
+      // Re-validate to show inline errors
+      validate()
       return
     }
 
     const submitData = {
-      ...formData,
-      dueDate: formData.dueDate || undefined,
+      title: trimmedTitle,
+      description: trimmedDescription,
+      status: formData.status,
+      priority: formData.priority,
+      dueDate: new Date(formData.dueDate).toISOString(), // Required field, always present after validation
     }
 
     onSubmit(submitData)
@@ -112,7 +154,7 @@ const TaskForm = ({ open, onClose, task, onSubmit, isSubmitting }) => {
       onKeyDown={handleKeyDown}
       aria-labelledby="task-form-dialog-title"
     >
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} noValidate>
         <DialogTitle id="task-form-dialog-title">
           {isEdit ? 'Edit Task' : 'Create New Task'}
         </DialogTitle>
@@ -137,13 +179,14 @@ const TaskForm = ({ open, onClose, task, onSubmit, isSubmitting }) => {
 
             <TextField
               fullWidth
-              label="Description"
+              label="Description *"
               name="description"
               value={formData.description}
               onChange={handleChange}
               margin="normal"
               multiline
               rows={4}
+              required
               error={!!errors.description}
               helperText={errors.description}
               disabled={isSubmitting}
@@ -156,11 +199,14 @@ const TaskForm = ({ open, onClose, task, onSubmit, isSubmitting }) => {
               <TextField
                 fullWidth
                 select
-                label="Status"
+                label="Status *"
                 name="status"
                 value={formData.status}
                 onChange={handleChange}
                 margin="normal"
+                required
+                error={!!errors.status}
+                helperText={errors.status}
                 disabled={isSubmitting}
                 inputProps={{
                   'aria-label': 'Task status',
@@ -174,11 +220,14 @@ const TaskForm = ({ open, onClose, task, onSubmit, isSubmitting }) => {
               <TextField
                 fullWidth
                 select
-                label="Priority"
+                label="Priority *"
                 name="priority"
                 value={formData.priority}
                 onChange={handleChange}
                 margin="normal"
+                required
+                error={!!errors.priority}
+                helperText={errors.priority}
                 disabled={isSubmitting}
                 inputProps={{
                   'aria-label': 'Task priority',
@@ -192,18 +241,22 @@ const TaskForm = ({ open, onClose, task, onSubmit, isSubmitting }) => {
 
             <TextField
               fullWidth
-              label="Due Date"
+              label="Due Date *"
               name="dueDate"
               type="date"
               value={formData.dueDate}
               onChange={handleChange}
               margin="normal"
+              required
+              error={!!errors.dueDate}
+              helperText={errors.dueDate}
               InputLabelProps={{
                 shrink: true,
               }}
               disabled={isSubmitting}
               inputProps={{
                 'aria-label': 'Task due date',
+                min: new Date().toISOString().split('T')[0], // Prevent past dates
               }}
             />
           </Box>
